@@ -1,5 +1,5 @@
 <?php
-if (!is_array($argv) || ($i = count($argv)) < 2) {
+if (!is_array($argv) || ($i = count($argv)) < 3) { // 3 = 2 arguments + 0th full line
     echo <<<END
 Usage: js-minifier.php [filename] [output filename (optionally)]
 

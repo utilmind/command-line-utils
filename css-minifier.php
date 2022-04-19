@@ -1,10 +1,10 @@
 <?php
-if (!is_array($argv) || ($i = count($argv)) < 2) {
-  echo <<<END
+if (!is_array($argv) || ($i = count($argv)) < 3) { // 3 = 2 arguments + 0th full line
+    echo <<<END
 Usage: css-minifier.php [filename] [output filename (optionally)]
 
 END;
-  exit;
+    exit;
 }
 
     // setup the URL and read the JS from a file
