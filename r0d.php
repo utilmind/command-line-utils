@@ -1,10 +1,10 @@
-<?
-$allow_extensions = [
-  'php', 'js', 'jsx', 'vue', 'css', 'scss', 'less', 'html', 'htm', 'shtml',
-  'txt', 'md', 'conf', 'ini', 'htaccess', 'sql',
-  'pl', 'cgi', 'asp', 'py', 'sh', 'bat', 'ps1',
-  'xml', 'json', 'svg',
-  // 'pas', 'c', 'cpp', 'h', // NO! Some legacy IDEs doesn't supports /n without /r.
+<?php
+static $allow_extensions = [
+    'php', 'js', 'jsx', 'vue', 'css', 'scss', 'less', 'html', 'htm', 'shtml',
+    'txt', 'md', 'conf', 'ini', 'htaccess', 'htpasswd', 'gitignore', 'sql',
+    'pl', 'cgi', 'asp', 'py', 'sh', 'bat', 'ps1',
+    'xml', 'json', 'svg',
+    // 'pas', 'c', 'cpp', 'h', // NO! Some legacy IDEs doesn't supports /n without /r.
 ];
 
 
@@ -12,7 +12,7 @@ $allow_extensions = [
 if (!is_array($argv) || ($i = count($argv)) < 2) {
   echo <<<END
 Usage: r0d.php [options] [filename or mask] [output filename (optionally)]
-r0d.php [mask, like *.php, or * to find all files with allowed extensions, or .* to find hidden files] [-r (to process subdirectories, if directory names match mask)]
+r0d.php [mask, like *.php, or * to find all files with allowed extensions (including hidden files, .htaccess, etc)] [-r (to process subdirectories, if directory names match mask)]
 
 Options:
   -s or -r: process subdirectories
@@ -33,38 +33,37 @@ $fix_html = false;
 
 unset($argv[0]);
 foreach ($argv as $arg) {
-  if (($arg[0] === '-') && ($option = strtolower(substr($arg, 1)))) {
-    if ($option === 's' || $option === 'r') {
-      $process_subdirectories = true;
-      continue;
+    if (($arg[0] === '-') && ($option = strtolower(substr($arg, 1)))) {
+        if ($option === 's' || $option === 'r') {
+            $process_subdirectories = true;
+            continue;
+        }
+
+        if (substr($option, 0, 2) === 'c:') {
+            $charsets = explode('~', substr($option, 2));
+            $convert_charset = strtolower($charsets[0]);
+            $convert_charset_target = isset($charsets[1]) ? strtolower($charsets[1]) : 'utf-8';
+            continue;
+        }
+
+        if ($option === 'i') {
+            $inform_only = true;
+            continue;
+        }
+
+        if ($option === 'fix-html') {
+            $fix_html = true;
+            continue;
+        }
     }
 
-    if (substr($option, 0, 2) === 'c:') {
-      $charsets = explode('~', substr($option, 2));
-      $convert_charset = strtolower($charsets[0]);
-      $convert_charset_target = isset($charsets[1]) ? strtolower($charsets[1]) : 'utf-8';
-
-      continue;
-    }
-
-    if ($option === 'i') {
-      $inform_only = true;
-      continue;
-    }
-
-    if ($option === 'fix-html') {
-      $fix_html = true;
-      continue;
-    }
-  }
-
-  // non-options
-  if (!$source_file)
-      $source_file = $arg;
-  elseif (!$target_file)
-      $target_file = $arg;
-
+    // non-options
+    if (!$source_file)
+        $source_file = $arg;
+    elseif (!$target_file)
+        $target_file = $arg;
 }
+
 
 
 // Check
@@ -158,6 +157,11 @@ function r0d_dir($dir_mask, $check_subdirs = false) {
 // GO!
 if ($is_wildcard) {
     r0d_dir(/*getcwd().'/'.*/$source_file, $process_subdirectories);
+
+    // AK 2023-01-18: I want to find .htaccess too, even if I looking for "*", not ".*".
+    if ($source_file === '*')
+        r0d_dir('.*', $process_subdirectories);
+
 }else {
     $out = r0d_file($source_file, $target_file);
     echo $out[1];
@@ -172,7 +176,7 @@ if ($is_wildcard) {
 function fix_html($s) {
 /*
   static $convert_chars = [
-            
+
     ];
  */
 
@@ -194,7 +198,7 @@ function fix_html($s) {
             return preg_replace("/\n+/s", "\n", $m[0]);
        }, $s);
 
-  // site-specific
+  // site-specific (GoldenHorn.com)
   // $s = preg_replace('/<(span|p|b|i|strong|em|font)([^>]*?)><\/\\1>/is', '', $s); // NOT <DIV>!! UPD. It's harmful.
   $s = preg_replace('/<td><div align="center">(.*?)<\/div><\/td>/', '<td>\\1</td>', $s);
   $s = preg_replace('/<td(.*?)class="yazilar">/', '<td\\1>', $s);
